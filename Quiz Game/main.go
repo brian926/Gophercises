@@ -15,7 +15,7 @@ type Quiz struct {
 
 func main() {
 	csvFileName := flag.String("csv", "quiz.csv", "csv file in format of 'question,answer'")
-	timeLimit := flag.Int("limit", 90, "The time limit for the quiz in seconds")
+	timeLimit := flag.Int("limit", 3, "The time limit for the quiz in seconds")
 	flag.Parse()
 
 	csvFile, err := os.Open(*csvFileName)
@@ -33,23 +33,33 @@ func main() {
 	quizList := parseLines(lines)
 
 	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
-	<-timer.C
 
-	result := runQuiz(quizList)
+	result := runQuiz(quizList, timer)
 
 	fmt.Printf("%v Corret out of %v", result, len(quizList))
 }
 
-func runQuiz(quizList []Quiz) int {
+func runQuiz(quizList []Quiz, timer *time.Timer) int {
 	var results = 0
 
 	for i, s := range quizList {
 		fmt.Printf("Question %v: %v\n", i+1, s.Question)
 
-		var ans string
-		fmt.Scanln(&ans)
-		if ans == s.Answer {
-			results++
+		answerCh := make(chan string)
+
+		go func() {
+			var ans string
+			fmt.Scanln(&ans)
+			answerCh <- ans
+		}()
+
+		select {
+		case <-timer.C:
+			return results
+		case ans := <-answerCh:
+			if ans == s.Answer {
+				results++
+			}
 		}
 	}
 
