@@ -4,8 +4,6 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
 )
 
@@ -15,36 +13,22 @@ type Quiz struct {
 }
 
 func main() {
-	csvFileName := flag.String("csv", "quiz.csv", "csv file of 'question,answer'")
+	csvFileName := flag.String("csv", "quiz.csv", "csv file in format of 'question,answer'")
 	flag.Parse()
 
 	csvFile, err := os.Open(*csvFileName)
 	if err != nil {
-		fmt.Printf("Failed to open the CSV file: %s", *csvFileName)
-		os.Exit(1)
+		exit(fmt.Sprintf("Failed to open the CSV file: %s\n", *csvFileName))
 	}
 
 	r := csv.NewReader(csvFile)
-	var quizList []Quiz
 
-	for {
-		record, err := r.Read()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var rec Quiz
-		rec.Question = record[0]
-		rec.Answer = record[1]
-
-		quizList = append(quizList, rec)
+	lines, err := r.ReadAll()
+	if err != nil {
+		exit("Failed to parse the provided CSV file!")
 	}
 
+	quizList := parseLines(lines)
 	var result = 0
 
 	for i, s := range quizList {
@@ -53,9 +37,28 @@ func main() {
 		var ans string
 		fmt.Scanln(&ans)
 		if ans == s.Answer {
-			result += 1
+			result++
 		}
 	}
 
 	fmt.Printf("%v Corret out of %v", result, len(quizList))
+}
+
+func parseLines(lines [][]string) []Quiz {
+	rec := make([]Quiz, len(lines))
+
+	for i, line := range lines {
+		rec[i] = Quiz{
+
+			Question: line[0],
+			Answer:   line[1],
+		}
+	}
+
+	return rec
+}
+
+func exit(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
 }
