@@ -13,25 +13,10 @@ type Quiz struct {
 	Answer   string
 }
 
-type Countdown struct {
-	t int
-	d int
-	h int
-	m int
-	s int
-}
-
 func main() {
 	csvFileName := flag.String("csv", "quiz.csv", "csv file in format of 'question,answer'")
+	timeLimit := flag.Int("limit", 90, "The time limit for the quiz in seconds")
 	flag.Parse()
-
-	deadline := flag.String("deadline", "", "Deadline for the countdown time")
-	flag.Parse()
-
-	v, err := time.Parse(time.RFC3339, *deadline)
-	if err != nil {
-		exit("Failed to parse Timer")
-	}
 
 	csvFile, err := os.Open(*csvFileName)
 	if err != nil {
@@ -46,15 +31,11 @@ func main() {
 	}
 
 	quizList := parseLines(lines)
+
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+	<-timer.C
+
 	result := runQuiz(quizList)
-
-	for range time.Tick(1 * time.Second) {
-		timeRemaining := getTimeRemaining(v)
-
-		if timeRemaining.t <= 0 {
-			exit("End of timer")
-		}
-	}
 
 	fmt.Printf("%v Corret out of %v", result, len(quizList))
 }
@@ -73,25 +54,6 @@ func runQuiz(quizList []Quiz) int {
 	}
 
 	return results
-}
-
-func getTimeRemaining(t time.Time) Countdown {
-	currentTime := time.Now()
-	difference := t.Sub(currentTime)
-
-	total := int(difference.Seconds())
-	days := int(total / (60 * 60 * 24))
-	hours := int(total / (60 * 60) % 24)
-	minutes := int(total/60) % 60
-	seconds := int(total % 60)
-
-	return Countdown{
-		t: total,
-		d: days,
-		h: hours,
-		m: minutes,
-		s: seconds,
-	}
 }
 
 func parseLines(lines [][]string) []Quiz {
