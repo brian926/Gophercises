@@ -48,10 +48,7 @@ func YAMLHandler(ymlBytes []byte, fallback http.Handler) (http.HandlerFunc, erro
 		return nil, err
 	}
 
-	pathsToUrls := make(map[string]string)
-	for _, pu := range pathUrl {
-		pathsToUrls[pu.Path] = pu.URL
-	}
+	pathsToUrls := buildMap(pathUrl)
 
 	return MapHandler(pathsToUrls, fallback), nil
 }
