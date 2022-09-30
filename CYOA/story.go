@@ -2,9 +2,12 @@ package cyoa
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 )
 
 func init() {
@@ -29,7 +32,7 @@ var html = `
 	{{end}}
 	<ul>
 		{{range .Options}}
-			<li><a href="/{{.}}">{{.Text}}</li>
+			<li><a href="/{{$}}">{{.Text}}</li>
 		{{end}}
 	</ul>
 </body>
@@ -58,11 +61,24 @@ func NewHandler(s Story) http.Handler {
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := tpl.Execute(w, h.s["intro"])
-	if err != nil {
-		panic(err)
+	path := strings.TrimSpace(r.URL.Path)
+	if path == "" || path == "/" {
+		path = "/intro"
 	}
+	path = path[1:]
 
+	if chapter, ok := h.s[path]; ok {
+		err := tpl.Execute(w, chapter)
+		if err != nil {
+			log.Printf("%v", err)
+
+			http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+		}
+		return
+	}
+	fmt.Printf("%v", h.s[path])
+	fmt.Printf("%v", path)
+	http.Error(w, "Chapter not found", http.StatusNotFound)
 }
 
 func JsonStory(r io.Reader) (Story, error) {
