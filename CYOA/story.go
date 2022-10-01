@@ -2,7 +2,6 @@ package cyoa
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -32,7 +31,7 @@ var html = `
 	{{end}}
 	<ul>
 		{{range .Options}}
-			<li><a href="/{{$}}">{{.Text}}</li>
+			<li><a href="/{{.Arc}}">{{.Text}}</li>
 		{{end}}
 	</ul>
 </body>
@@ -53,19 +52,37 @@ type Option struct {
 }
 
 type handler struct {
-	s Story
+	s      Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
 }
 
-func NewHandler(s Story) http.Handler {
-	return handler{s}
+type HandlerOptions func(h *handler)
+
+func WithTemplate(t *template.Template) HandlerOptions {
+	return func(h *handler) {
+		h.t = t
+	}
 }
 
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewHandler(s Story, opts ...HandlerOptions) http.Handler {
+	h := handler{s, tpl, defaultPathFn}
+	for _, opt := range opts {
+		opt(&h)
+	}
+	return h
+}
+
+func defaultPathFn(r *http.Request) string {
 	path := strings.TrimSpace(r.URL.Path)
 	if path == "" || path == "/" {
 		path = "/intro"
 	}
-	path = path[1:]
+	return path[1:]
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := h.pathFn(r)
 
 	if chapter, ok := h.s[path]; ok {
 		err := tpl.Execute(w, chapter)
@@ -76,8 +93,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	fmt.Printf("%v", h.s[path])
-	fmt.Printf("%v", path)
+
 	http.Error(w, "Chapter not found", http.StatusNotFound)
 }
 
