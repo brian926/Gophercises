@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	link "."
+	link ".."
 )
 
 var exampleHTML = `<html>
