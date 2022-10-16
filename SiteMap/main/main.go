@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 )
 
 func main() {
@@ -10,4 +11,9 @@ func main() {
 	flag.Parse()
 
 	fmt.Println(*urlFlag)
+	resp, err := http.Get(*urlFlag)
+	if err != nil {
+
+	}
+	defer resp.Body.Close()
 }
