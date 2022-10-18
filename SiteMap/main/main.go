@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	urlFlag := flag.String("url", "https://gophercises.com", "the url you want to build out a sitemap for")
+	urlFlag := flag.String("url", "https://gophercises.com", "the site you want to build out a sitemap for")
 	flag.Parse()
 
 	fmt.Println(*urlFlag)
