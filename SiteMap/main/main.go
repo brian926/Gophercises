@@ -82,7 +82,7 @@ func filter(links []string, keepFn func(string) bool) []string {
 	return ret
 }
 
-// test 2
+// test 3
 func withPrefix(pfx string) func(string) bool {
 	return func(link string) bool {
 		return strings.HasPrefix(link, pfx)
