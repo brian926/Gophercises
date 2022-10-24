@@ -1,28 +1,52 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	link ".."
 )
 
+const xmlns = "https://www.sitemaps.org/schemas/sitemap/0.9"
+
+type loc struct {
+	Value string `xml:"loc"`
+}
+
+type urlset struct {
+	Urls  []loc  `xml:"url"`
+	Xmlns string `xml:"xmlns,attr`
+}
+
 func main() {
 	urlFlag := flag.String("url", "https://gophercises.com", "the site you want to build out a sitemap for")
 	maxDepth := flag.Int("depth", 3, "the max depth number of links to traverse")
-
 	flag.Parse()
 
-	fmt.Println(*urlFlag)
-
-	pages := get(*urlFlag)
+	pages := bfs(*urlFlag, *maxDepth)
 
 	for _, page := range pages {
 		fmt.Println(page)
+	}
+
+	toXml := urlset{
+		Xmlns: xmlns,
+	}
+	for _, page := range pages {
+		toXml.Urls = append(toXml.Urls, loc{page})
+	}
+
+	fmt.Print(xml.Header)
+	enc := xml.NewEncoder(os.Stdout)
+	enc.Indent("", " ")
+	if err := enc.Encode(toXml); err != nil {
+		panic(err)
 	}
 }
 
@@ -34,6 +58,27 @@ func bfs(urlStr string, maxDepth int) []string {
 		urlStr: struct{}{},
 	}
 
+	for i := 0; i <= maxDepth; i++ {
+		q, nq = nq, make(map[string]struct{})
+
+		for url, _ := range q {
+			if _, ok := seen[url]; ok {
+				continue
+			}
+			seen[url] = struct{}{}
+
+			for _, link := range get(url) {
+				nq[link] = struct{}{}
+			}
+		}
+	}
+
+	var ret = make([]string, 0, len(seen))
+	for url, _ := range seen {
+		ret = append(ret, url)
+	}
+
+	return ret
 }
 
 func get(urlStr string) []string {
